@@ -1,6 +1,9 @@
 module Main where
 
-import Text.ParserCombinators.Parsec hiding (spaces)
+import Text.ParserCombinators.Parsec ( Parser, string, many, char, alphaNum
+                                     , letter, (<|>),  digit, space, many1
+                                     , oneOf, skipMany1, parse)
+import Text.ParserCombinators.Parsec.Token (identifier)
 import System.Environment (getArgs)
 import Control.Monad (liftM)
 import Control.Monad.Trans (liftIO)
@@ -22,7 +25,7 @@ spaces = skipMany1 space
 parseString :: Parser LispVal
 parseString = do
   char '"'
-  x <- many (noneOf "\"")
+  x <- many alphaNum <|> string "\\\""
   return $ String x
 
 {- An attom is a letter or symbol, followed by any number of letters,-}
