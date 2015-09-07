@@ -1,7 +1,8 @@
 module Main where
 
 import Text.ParserCombinators.Parsec hiding (spaces)
-import System.Environment
+import System.Environment (getArgs)
+import Control.Monad (liftM)
 import Control.Monad.Trans (liftIO)
 import System.Console.Haskeline (getInputLine, outputStrLn)
 
@@ -15,13 +16,40 @@ data LispVal = Atom String
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 
-readExpr :: String -> String
-readExpr input = case parse (spaces >> symbol) "lisp" input of
-  Left  err -> "No match: " ++ show err
-  Right val -> "Found value"
-
 spaces :: Parser ()
 spaces = skipMany1 space
+
+parseString :: Parser LispVal
+parseString = do
+  char '"'
+  x <- many (noneOf "\"")
+  return $ String x
+
+{- An attom is a letter or symbol, followed by any number of letters,-}
+{- digits, or symbols.
+-}
+parseAtom :: Parser LispVal
+parseAtom = do
+  first <- letter <|> symbol
+  rest  <- many (letter <|> digit <|> symbol)
+  let atom = first : rest
+  return $ case atom of
+    "#t" -> Bool True
+    "#f" -> Bool False
+    _    -> Atom atom
+
+parseNumber :: Parser LispVal
+parseNumber = liftM (Number . read) (many1 digit)
+
+parseExpr :: Parser LispVal
+parseExpr =  parseAtom
+         <|> parseString
+         <|> parseNumber
+
+readExpr :: String -> String
+readExpr input = case parse parseExpr "lisp" input of
+  Left err -> "No match: " ++ show err
+  Right _  -> "Found value"
 
 main :: IO ()
 main = do
