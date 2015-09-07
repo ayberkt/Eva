@@ -16,6 +16,14 @@ data LispVal = Atom String
              | String String
              | Bool Bool
 
+instance Show LispVal where
+  show (Atom s) = "Atom " ++ s
+  show (List xs) = "List " ++ show xs
+  show (DottedList xs x) = "Dotted list " ++ show xs ++ " . " ++ show x
+  show (Number x) = "Number " ++ show x
+  show (String s) = "String " ++ s
+  show (Bool b) = "Bool " ++ show b
+
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 
@@ -52,7 +60,7 @@ parseExpr =  parseAtom
 readExpr :: String -> String
 readExpr input = case parse parseExpr "lisp" input of
   Left err -> "No match: " ++ show err
-  Right _  -> "Found value"
+  Right x  -> show x
 
 main :: IO ()
 main = do
