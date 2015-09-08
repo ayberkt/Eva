@@ -1,4 +1,4 @@
-module Main where
+module Parser where
 
 import Text.ParserCombinators.Parsec ( Parser, string, many, char, alphaNum
                                      , letter, (<|>),  digit, space, many1
@@ -7,9 +7,6 @@ import Text.ParserCombinators.Parsec ( Parser, string, many, char, alphaNum
 import Text.ParserCombinators.Parsec.Token (identifier)
 import System.Environment (getArgs)
 import Control.Monad (liftM)
-import Control.Monad.Trans (liftIO)
-import System.Console.Haskeline (getInputLine, outputStrLn, runInputT
-                                , defaultSettings)
 
 data LispVal = Atom String
              | List [LispVal]
@@ -86,12 +83,3 @@ readExpr :: String -> String
 readExpr input = case parse parseExpr "lisp" input of
   Left err -> "No match: " ++ show err
   Right x  -> show x
-
-main :: IO ()
-main = do runInputT defaultSettings loop
-  where
-    loop = do
-      minput <- getInputLine "eva> "
-      case minput of
-        Nothing -> outputStrLn "Goodbye."
-        Just input -> (liftIO $ putStrLn $ readExpr input) >> loop
