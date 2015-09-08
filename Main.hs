@@ -2,7 +2,7 @@ module Main where
 
 import Text.ParserCombinators.Parsec ( Parser, string, many, char, alphaNum
                                      , letter, (<|>),  digit, space, many1
-                                     , oneOf, skipMany1, parse, sepBy)
+                                     , oneOf, skipMany1, parse, sepBy, try)
 import Text.ParserCombinators.Parsec.Token (identifier)
 import System.Environment (getArgs)
 import Control.Monad (liftM)
@@ -37,7 +37,7 @@ escapedQuote = char '\\' >> char '"'
 parseString :: Parser LispVal
 parseString = do
   char '"'
-  x <- (many (alphaNum <|> space <|> symbol <|> escapedQuote))
+  x <- many (alphaNum <|> space <|> symbol <|> escapedQuote)
   char '"'
   return $ String x
 
@@ -60,6 +60,7 @@ parseExpr :: Parser LispVal
 parseExpr =  parseAtom
          <|> parseString
          <|> parseNumber
+         <|> (char '(' >> (try parseList) >>= \x -> char ')' >> return x)
 
 parseList :: Parser LispVal
 parseList = liftM List $ sepBy parseExpr spaces
