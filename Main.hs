@@ -2,12 +2,13 @@ module Main where
 
 import Text.ParserCombinators.Parsec ( Parser, string, many, char, alphaNum
                                      , letter, (<|>),  digit, space, many1
-                                     , oneOf, skipMany1, parse)
+                                     , oneOf, skipMany1, parse, sepBy)
 import Text.ParserCombinators.Parsec.Token (identifier)
 import System.Environment (getArgs)
 import Control.Monad (liftM)
 import Control.Monad.Trans (liftIO)
-import System.Console.Haskeline (getInputLine, outputStrLn)
+import System.Console.Haskeline (getInputLine, outputStrLn, runInputT
+                                , defaultSettings)
 
 data LispVal = Atom String
              | List [LispVal]
@@ -33,12 +34,13 @@ spaces = skipMany1 space
 parseString :: Parser LispVal
 parseString = do
   char '"'
-  x <- many alphaNum <|> string "\\\""
+  let escapedQuote = char '\\' >> char '"'
+  x <- (many (alphaNum <|> space <|> escapedQuote))
+  char '"'
   return $ String x
 
 {- An attom is a letter or symbol, followed by any number of letters,-}
-{- digits, or symbols.
--}
+{- digits, or symbols. -}
 parseAtom :: Parser LispVal
 parseAtom = do
   first <- letter <|> symbol
@@ -57,12 +59,19 @@ parseExpr =  parseAtom
          <|> parseString
          <|> parseNumber
 
+parseList :: Parser LispVal
+parseList = liftM List $ sepBy parseExpr spaces
+
 readExpr :: String -> String
 readExpr input = case parse parseExpr "lisp" input of
   Left err -> "No match: " ++ show err
   Right x  -> show x
 
 main :: IO ()
-main = do
-  (expr:_) <- getArgs
-  putStrLn (readExpr expr)
+main = do runInputT defaultSettings loop
+  where
+    loop = do
+      minput <- getInputLine "eva> "
+      case minput of
+        Nothing -> outputStrLn "Goodbye."
+        Just input -> (liftIO $ putStrLn $ readExpr input) >> loop
