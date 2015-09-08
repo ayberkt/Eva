@@ -31,11 +31,13 @@ symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 spaces :: Parser ()
 spaces = skipMany1 space
 
+escapedQuote :: Parser Char
+escapedQuote = char '\\' >> char '"'
+
 parseString :: Parser LispVal
 parseString = do
   char '"'
-  let escapedQuote = char '\\' >> char '"'
-  x <- (many (alphaNum <|> space <|> escapedQuote))
+  x <- (many (alphaNum <|> space <|> symbol <|> escapedQuote))
   char '"'
   return $ String x
 
