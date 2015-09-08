@@ -2,7 +2,8 @@ module Main where
 
 import Text.ParserCombinators.Parsec ( Parser, string, many, char, alphaNum
                                      , letter, (<|>),  digit, space, many1
-                                     , oneOf, skipMany1, parse, sepBy, try)
+                                     , oneOf, skipMany1, parse, sepBy, try
+                                     , endBy)
 import Text.ParserCombinators.Parsec.Token (identifier)
 import System.Environment (getArgs)
 import Control.Monad (liftM)
@@ -19,11 +20,11 @@ data LispVal = Atom String
 
 instance Show LispVal where
   show (Atom s) = "Atom " ++ s
-  show (List xs) = "List " ++ show xs
+  show (List xs) = "(" ++ unwords (map show xs) ++ ")"
   show (DottedList xs x) = "Dotted list " ++ show xs ++ " . " ++ show x
-  show (Number x) = "Number " ++ show x
-  show (String s) = "String " ++ s
-  show (Bool b) = "Bool " ++ show b
+  show (Number x) = show x
+  show (String s) = "\"" ++ s ++ "\""
+  show (Bool b) = show b
 
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
@@ -56,14 +57,30 @@ parseAtom = do
 parseNumber :: Parser LispVal
 parseNumber = liftM (Number . read) (many1 digit)
 
+parseList :: Parser LispVal
+parseList = liftM List $ sepBy parseExpr spaces
+
+parseDottedList :: Parser LispVal
+parseDottedList = do
+  head <- endBy parseExpr spaces
+  tail <- char '.' >> spaces >> parseExpr
+  return $ DottedList head tail
+            
+parseQuoted :: Parser LispVal
+parseQuoted = do
+  char '\''
+  x <- parseExpr
+  return $ List [Atom "quote", x]
+
+
 parseExpr :: Parser LispVal
 parseExpr =  parseAtom
          <|> parseString
          <|> parseNumber
-         <|> (char '(' >> (try parseList) >>= \x -> char ')' >> return x)
-
-parseList :: Parser LispVal
-parseList = liftM List $ sepBy parseExpr spaces
+         <|> parseQuoted
+         <|> (char '(' >> (try parseList <|> parseDottedList)
+                       >>= \x -> char ')'
+                       >> return x)
 
 readExpr :: String -> String
 readExpr input = case parse parseExpr "lisp" input of
