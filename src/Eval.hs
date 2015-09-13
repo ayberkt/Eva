@@ -7,7 +7,19 @@ eval val@(String _) = val
 eval val@(Number _) = val
 eval val@(Bool _)   = val
 eval (List [Atom "quote", val]) = val
+                                             
+
+eval (List (Atom func : x : []))
+  | func == "number?" = case x of Number x -> Bool True
+                                  _        -> Bool False
+  | func == "symbol?" = case x of Atom x   -> Bool True
+                                  _        -> Bool False
+  | func == "string?" = case x of String x -> Bool True
+                                  -        -> Bool False
+  | func == "symbol?" = case x of List x   -> Bool True
+                                  -        -> Bool False
 eval (List (Atom func : args)) = apply func $ map eval args
+
 
 apply :: String -> [LispVal] -> LispVal
 apply func args = maybe (Bool False) ($ args) $ func `lookup` primitives
